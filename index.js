@@ -26,6 +26,7 @@ function veryfiJwt(req,res, next) {
               return  res.status(403).send({message: 'Forbeden Token'})
              }
              req.decoded= decoded;
+             next();
         })
     
 }
@@ -34,6 +35,7 @@ async function run(){
      const appoinmetOpptionCallection= client.db('doctorsProtal').collection('appoinmentOption')
       const bookingsCollection = client.db('doctorsProtal').collection('bookings')
       const usersCollection = client.db('doctorsProtal').collection('users')
+      const docotorsCollection = client.db('doctorsProtal').collection('doctors')
      app.get('/appoinmentOption', async(req, res)=>{
         const date=req.query.date;
         
@@ -51,15 +53,18 @@ async function run(){
          
          res.send(options)
      })
-     app.get('/bookings', veryfiJwt, async(req, res)=> {
+     app.get('/appoinmentSpeciailty', async(req, res)=>{
+        const query={};
+        const result=await appoinmetOpptionCallection.find(query).project({name: 1}).toArray();
+        res.send(result)
+     })
+     app.get('/bookings',veryfiJwt, async(req, res)=> {
          const email =req.query.email;
          const decodedEmail=req.decoded.email;
          if(email !== decodedEmail){
-            return res.status(403).send({message: 'Forbeden Token'})
+            return res.status(403).send({message: "forbidden access"})
          }
-         
          const query={ email: email}
-        
          const bookings=await bookingsCollection.find(query).toArray();
          res.send(bookings)
      })
@@ -84,48 +89,51 @@ async function run(){
          const query={email: email};
          const user=await usersCollection.findOne(query);
          if(user){
-            const token= jwt.sign({email}, process.env.ACCESS_TOKEN, {expiresIn: '1h'});
+            const token= jwt.sign({email}, process.env.ACCESS_TOKEN, {expiresIn: '2d'});
            return res.send({accessToken: token})
          }
         
          res.status(403).send({accessToken: ''})
         
      })
+     
+     app.get('/users', async(req, res)=> {
+        const query={};
+        const result=await usersCollection.find(query).toArray();
+        res.send(result)
+     });
      app.get('/users/admin/:email', async(req, res)=>{
         const email=req.params.email;
-        const query={email};
+        const query={ email };
         const user =await usersCollection.findOne(query);
-         res.send({isAdmin: user?.role === 'admin'})
+        res.send({isAdmin: user?.role === 'admin'})
      })
-     app.get('/users', async(req, res)=>{
-         const query={};
-         const users =await usersCollection.find(query).toArray()
-         res.send(users)
-     })
-     app.put('/users/admin/:id',veryfiJwt, async(req, res)=>{
-        const decodedEmail =req.decoded.email;
-        const qurey={email: decodedEmail}
-         const user =await usersCollection.findOne(qurey);
-         if(user?.role !== 'admin'){
-            return res.status(403).send({message: 'Forbedn access'})
-         }
-         const id =req.params.id;
-         const filter={_id: new ObjectId(id)}
-         const options = { upsert: true };
-         const updateDoc={
-            $set:{
-                role: 'admin'
-            }
-         };
-         const result=await usersCollection.updateOne(filter, updateDoc,options);
-         res.send(result)
-     })
+  
      app.post('/users', async(req, res)=>{
          const users=req.body;
          const result= await usersCollection.insertOne(users)
          res.send(result)
-     })
+     });
+     app.put('/users/admin/:id', veryfiJwt,async(req, res)=>{
+        const decodedEmail=req.decoded.email;
+        const query={email: decodedEmail};
+        const users=await usersCollection.findOne(query);
+        if(users?.role !== 'admin'){
+            return res.status(403).send({message: "forbidden access"})
+        }
+        const id =req.params.id;
+        const filter={_id: new ObjectId(id)};
+        const options={upsert: true};
+        const updateDoc={
+            $set:{
+                role: 'admin'
+            }
+        }
+        const result=await usersCollection.updateOne(filter, updateDoc, options)
+        res.send(result)
+     });
 
+     
 
     }
     finally{
