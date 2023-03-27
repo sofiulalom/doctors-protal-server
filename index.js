@@ -1,6 +1,6 @@
 const express = require('express');
 const cors =require("cors")
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId, OrderedBulkOperation } = require('mongodb');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const app =express();
@@ -97,6 +97,11 @@ async function run(){
         
      })
      
+     app.get('/aponinmentSpcialty', async(req, res)=> {
+         const query={};
+         const result = await appoinmetOpptionCallection.find(query).project({name: 1}).toArray();
+         res.send(result)
+     })
      app.get('/users', async(req, res)=> {
         const query={};
         const result=await usersCollection.find(query).toArray();
@@ -132,6 +137,22 @@ async function run(){
         const result=await usersCollection.updateOne(filter, updateDoc, options)
         res.send(result)
      });
+     app.get('/doctors', async(req, res)=>{
+        const query={};
+        const result =await docotorsCollection.find(query).toArray();
+        res.send(result)
+     })
+     app.post('/doctors', async(req,res)=>{
+        const doctor =req.body;
+        const result = await docotorsCollection.insertOne(doctor);
+        res.send(result)
+     });
+     app.delete('/doctors',  async(req, res)=> {
+        const  id =req.params.id;
+        const query={_id: ObjectId(id)}
+        const result = await docotorsCollection.deleteOne(query);
+        res.send(result)
+     })
 
      
 
