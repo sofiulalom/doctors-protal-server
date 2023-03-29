@@ -36,6 +36,15 @@ async function run(){
       const bookingsCollection = client.db('doctorsProtal').collection('bookings')
       const usersCollection = client.db('doctorsProtal').collection('users')
       const docotorsCollection = client.db('doctorsProtal').collection('doctors')
+      const verifyAdmin = async(req, res ,next)=>{
+         const decodedEmail=req.decoded.email;
+         const query={email: decodedEmail};
+         const users=await usersCollection.findOne(query);
+         if(users?.role !== 'admin'){
+             return res.status(403).send({message: "forbidden access"})
+         }
+         next();
+      }
      app.get('/appoinmentOption', async(req, res)=>{
         const date=req.query.date;
         
@@ -119,13 +128,7 @@ async function run(){
          const result= await usersCollection.insertOne(users)
          res.send(result)
      });
-     app.put('/users/admin/:id', veryfiJwt,async(req, res)=>{
-        const decodedEmail=req.decoded.email;
-        const query={email: decodedEmail};
-        const users=await usersCollection.findOne(query);
-        if(users?.role !== 'admin'){
-            return res.status(403).send({message: "forbidden access"})
-        }
+     app.put('/users/admin/:id', veryfiJwt,verifyAdmin,async(req, res)=>{
         const id =req.params.id;
         const filter={_id: new ObjectId(id)};
         const options={upsert: true};
@@ -137,19 +140,19 @@ async function run(){
         const result=await usersCollection.updateOne(filter, updateDoc, options)
         res.send(result)
      });
-     app.get('/doctors', async(req, res)=>{
+     app.get('/doctors', veryfiJwt,verifyAdmin, async(req, res)=>{
         const query={};
         const result =await docotorsCollection.find(query).toArray();
         res.send(result)
      })
-     app.post('/doctors', async(req,res)=>{
+     app.post('/doctors',veryfiJwt,verifyAdmin, async(req,res)=>{
         const doctor =req.body;
         const result = await docotorsCollection.insertOne(doctor);
         res.send(result)
      });
-     app.delete('/doctors',  async(req, res)=> {
+     app.delete('/doctors/:id', veryfiJwt,verifyAdmin, async(req, res)=> {
         const  id =req.params.id;
-        const query={_id: ObjectId(id)}
+        const query={_id: new ObjectId(id)}
         const result = await docotorsCollection.deleteOne(query);
         res.send(result)
      })
