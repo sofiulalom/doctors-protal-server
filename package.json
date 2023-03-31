@@ -17,6 +17,7 @@
     "expres": "^0.0.5",
     "jsonwebtoken": "^9.0.0",
     "mogodb": "^0.0.1-security",
-    "mongodb": "^5.1.0"
+    "mongodb": "^5.1.0",
+    "stripe": "^11.16.0"
   }
 }
